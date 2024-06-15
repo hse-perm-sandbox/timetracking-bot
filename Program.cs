@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -17,7 +18,7 @@ namespace Timetracking_HSE_Bot
 
         static async Task Main(string[] args)
         {
-            string token = ConfigurationManager.AppSettings["Token"];
+            string token = Environment.GetEnvironmentVariable("TIMETRACKING_TG_TOKEN") ?? ConfigurationManager.AppSettings["Token"];
             botClient = new TelegramBotClient(token);
             var me = await botClient.GetMeAsync(); //Получаем информацию о боте
             botClient.StartReceiving(Update, Error);

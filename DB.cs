@@ -4,7 +4,7 @@ namespace Timetracking_HSE_Bot
 {
     public class DB
     {
-        private static readonly string fileName = "DB.db";
+        private static readonly string fileName = "data/timetracking.db";
         private static SQLiteConnection DBConection = new($"Data Source={fileName}; Trusted_Connection=True;");
 
         public static readonly string fullPath = Path.GetFullPath($"{fileName}");
