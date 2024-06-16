@@ -51,10 +51,10 @@ jobs:
           script: |
             docker logout;
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev;
-            docker volume create ${{ env.VOLUME_NAME }};
             docker rm -f ${{ env.CONTAINER_NAME }} || true;
             docker run -d \
-              -v ${{ env.CONTAINER_NAME }}:/app/data/ \
+              -v ${{ env.VOLUME_NAME }}:/app/data/ \
               -e TIMETRACKING_TG_TOKEN="${{ secrets.TIMETRACKING_TG_TOKEN }}" \
+              --restart=always \
               --name ${{ env.CONTAINER_NAME }} \
               ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev;
