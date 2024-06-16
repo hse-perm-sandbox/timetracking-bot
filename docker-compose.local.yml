@@ -7,7 +7,7 @@ services:
     environment:
       - TIMETRACKING_TG_TOKEN=${TIMETRACKING_TG_TOKEN}
     volumes:
-      - timetracking-data:/data
+      - timetracking-data:/app/data/
     restart: always
 
 volumes:

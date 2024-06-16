@@ -1,4 +1,5 @@
 ﻿using System.Data.SQLite;
+using System.IO;
 
 namespace Timetracking_HSE_Bot
 {
@@ -6,8 +7,55 @@ namespace Timetracking_HSE_Bot
     {
         private static readonly string fileName = "data/timetracking.db";
         private static SQLiteConnection DBConection = new($"Data Source={fileName}; Trusted_Connection=True;");
+        private static readonly string initSql = @"
+            CREATE TABLE IF NOT EXISTS RegUsers (
+                ChatId TEXT(50) PRIMARY KEY UNIQUE,
+                Username TEXT(100)
+            );
+
+            CREATE TABLE IF NOT EXISTS Activities (
+                ChatId TEXT NOT NULL,
+                Number INTEGER,
+                Name TEXT,
+                IsTracking BOOLEAN DEFAULT 0,
+                DateStart DATE,
+                DateEnd DATE,
+                FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
+            );
+
+            CREATE TABLE IF NOT EXISTS StartStopAct (
+                ChatId TEXT(100),
+                Number INTEGER,
+                StartTime DATETIME,
+                StopTime DATETIME,
+                TotalTime TEXT,
+                FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
+            );";
 
         public static readonly string fullPath = Path.GetFullPath($"{fileName}");
+
+        public static void InitDb()
+        {
+            if (!File.Exists(fileName))
+            {
+                File.Create(fileName).Close();
+                try{
+                    DBConection.Open();
+                    using var command = new SQLiteCommand(initSql, DBConection);
+                    command.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Ошибка: " + ex);
+                    throw;
+                }
+                finally
+                {
+                    DBConection?.Close();
+                }
+
+            }
+        }
 
         /// <summary>
         /// Занесение id и username пользователя в бд
