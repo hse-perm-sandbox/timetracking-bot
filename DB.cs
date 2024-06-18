@@ -1,4 +1,4 @@
-﻿using System.Data.SQLite;
+using System.Data.SQLite;
 using System.IO;
 
 namespace Timetracking_HSE_Bot
@@ -30,8 +30,16 @@ namespace Timetracking_HSE_Bot
                 StopTime DATETIME,
                 TotalTime TEXT,
                 FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
-            );";
-
+            );
+             
+            CREATE TRIGGER NewUser AFTER INSERT ON RegUsers
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 1, 'Работа');
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 2, 'Спорт');
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 3, 'Отдых');
+            END;";
+  
         public static readonly string fullPath = Path.GetFullPath($"{fileName}");
 
         public static void InitDb()
@@ -53,7 +61,6 @@ namespace Timetracking_HSE_Bot
                 {
                     DBConection?.Close();
                 }
-
             }
         }
 
