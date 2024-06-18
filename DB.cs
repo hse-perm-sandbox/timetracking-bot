@@ -1,13 +1,13 @@
-﻿using System.Data.SQLite;
+using System.Data.SQLite;
+using System.IO;
 
 namespace Timetracking_HSE_Bot
 {
     public class DB
     {
-        private static readonly string fileName = "DB.db";
+        private static readonly string fileName = "data/timetracking.db";
         private static SQLiteConnection DBConection = new($"Data Source={fileName}; Trusted_Connection=True;");
-        
-         private static readonly string initSql = @"
+        private static readonly string initSql = @"
             CREATE TABLE IF NOT EXISTS RegUsers (
                 ChatId TEXT(50) PRIMARY KEY UNIQUE,
                 Username TEXT(100)
@@ -32,20 +32,37 @@ namespace Timetracking_HSE_Bot
                 FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
             );
              
-             CREATE TRIGGER NewUser
-                AFTER INSERT
-                  ON RegUsers
-             FOR EACH ROW
-BEGIN
-    INSERT INTO Activities (ChatId, Number,Name)
-                           VALUES (NEW.ChatId,1,"Работа");
-    INSERT INTO Activities (  ChatId,Number,Name )
-                           VALUES ( NEW.ChatId, 2,  "Спорт");
-    INSERT INTO Activities ( ChatId, Number, Name  )
-                           VALUES ( NEW.ChatId, 3,   "Отдых");
-END;";
+            CREATE TRIGGER NewUser AFTER INSERT ON RegUsers
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 1, 'Работа');
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 2, 'Спорт');
+                INSERT INTO Activities (ChatId, Number, Name) VALUES (NEW.ChatId, 3, 'Отдых');
+            END;";
   
         public static readonly string fullPath = Path.GetFullPath($"{fileName}");
+
+        public static void InitDb()
+        {
+            if (!File.Exists(fileName))
+            {
+                File.Create(fileName).Close();
+                try{
+                    DBConection.Open();
+                    using var command = new SQLiteCommand(initSql, DBConection);
+                    command.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Ошибка: " + ex);
+                    throw;
+                }
+                finally
+                {
+                    DBConection?.Close();
+                }
+            }
+        }
 
         /// <summary>
         /// Занесение id и username пользователя в бд

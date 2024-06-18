@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -17,12 +18,16 @@ namespace Timetracking_HSE_Bot
 
         static async Task Main(string[] args)
         {
-            string token = ConfigurationManager.AppSettings["Token"];
+            DB.InitDb();
+            string token = Environment.GetEnvironmentVariable("TIMETRACKING_TG_TOKEN") ?? ConfigurationManager.AppSettings["Token"];
             botClient = new TelegramBotClient(token);
             var me = await botClient.GetMeAsync(); //Получаем информацию о боте
             botClient.StartReceiving(Update, Error);
             Console.WriteLine($"Бот {me.FirstName} запущен! id: {me.Id}");
-            Console.ReadLine();
+            while (true)
+            {
+                Thread.Sleep(Timeout.Infinite);
+            }
         }
 
         //Асинхронная задача которая реагирует на взаимодействия с ботом

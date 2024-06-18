@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  timetracking-bot:
+    container_name: timetracking-bot.local
+    build:
+      context: .
+    environment:
+      - TIMETRACKING_TG_TOKEN=${TIMETRACKING_TG_TOKEN}
+    volumes:
+      - timetracking-data:/app/data/
+    restart: always
+
+volumes:
+  timetracking-data:
