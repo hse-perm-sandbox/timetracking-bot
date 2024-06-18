@@ -6,7 +6,45 @@ namespace Timetracking_HSE_Bot
     {
         private static readonly string fileName = "DB.db";
         private static SQLiteConnection DBConection = new($"Data Source={fileName}; Trusted_Connection=True;");
+        
+         private static readonly string initSql = @"
+            CREATE TABLE IF NOT EXISTS RegUsers (
+                ChatId TEXT(50) PRIMARY KEY UNIQUE,
+                Username TEXT(100)
+            );
 
+            CREATE TABLE IF NOT EXISTS Activities (
+                ChatId TEXT NOT NULL,
+                Number INTEGER,
+                Name TEXT,
+                IsTracking BOOLEAN DEFAULT 0,
+                DateStart DATE,
+                DateEnd DATE,
+                FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
+            );
+
+            CREATE TABLE IF NOT EXISTS StartStopAct (
+                ChatId TEXT(100),
+                Number INTEGER,
+                StartTime DATETIME,
+                StopTime DATETIME,
+                TotalTime TEXT,
+                FOREIGN KEY (ChatId) REFERENCES RegUsers(ChatId)
+            );
+             
+             CREATE TRIGGER NewUser
+                AFTER INSERT
+                  ON RegUsers
+             FOR EACH ROW
+BEGIN
+    INSERT INTO Activities (ChatId, Number,Name)
+                           VALUES (NEW.ChatId,1,"Работа");
+    INSERT INTO Activities (  ChatId,Number,Name )
+                           VALUES ( NEW.ChatId, 2,  "Спорт");
+    INSERT INTO Activities ( ChatId, Number, Name  )
+                           VALUES ( NEW.ChatId, 3,   "Отдых");
+END;";
+  
         public static readonly string fullPath = Path.GetFullPath($"{fileName}");
 
         /// <summary>
