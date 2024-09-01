@@ -1,7 +1,7 @@
 using System.Data.SQLite;
 using System.IO;
 
-namespace Timetracking_HSE_Bot
+namespace TimeTracker
 {
     public class DB
     {

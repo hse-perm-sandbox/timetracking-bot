@@ -1,14 +1,28 @@
 version: '3.8'
 services:
-  timetracking-bot:
-    container_name: timetracking-bot.local
-    build:
-      context: .
+  pg:
+    image: postgres
     environment:
-      - TIMETRACKING_TG_TOKEN=${TIMETRACKING_TG_TOKEN}
-    volumes:
-      - timetracking-data:/app/data/
-    restart: always
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-volumes:
-  timetracking-data:
+#   timetracking-bot:
+#     container_name: timetracking-bot.local
+#     build:
+#       context: .
+#     environment:
+#       - TIMETRACKING_TG_TOKEN=${TIMETRACKING_TG_TOKEN}
+#     volumes:
+#       - timetracking-data:/app/data/
+#     restart: always
+
+# volumes:
+#   timetracking-data:

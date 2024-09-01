@@ -1,14 +1,13 @@
-﻿using System;
-using System.Configuration;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Xml;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using Microsoft.Extensions.Configuration;
+using TimeTracker.Models;
 
-namespace Timetracking_HSE_Bot
+namespace TimeTracker
 {
     internal class Program
     {
@@ -16,10 +15,23 @@ namespace Timetracking_HSE_Bot
 
         static public TelegramBotClient botClient = new("");
 
+        static UserService userService;
+        static ActivityService activityService;
+
         static async Task Main(string[] args)
         {
+            var context = new ApplicationDbContext(); 
+            userService = new UserService(context);
+            activityService = new ActivityService(context);
+
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+            IConfiguration configuration = builder.Build();
+
+            string token = configuration["TelegramToken"];
             DB.InitDb();
-            string token = Environment.GetEnvironmentVariable("TIMETRACKING_TG_TOKEN") ?? ConfigurationManager.AppSettings["Token"];
             botClient = new TelegramBotClient(token);
             var me = await botClient.GetMeAsync(); //Получаем информацию о боте
             botClient.StartReceiving(Update, Error);
@@ -58,6 +70,7 @@ namespace Timetracking_HSE_Bot
         static async Task MessageAsync(Message message)
         {
             long chatId = message.Chat.Id;
+            var user = await userService.GetUserByChatId(chatId);
             (User.State state, int? actNumber) userInfo = User.GetState(chatId);
 
             //стартовое сообщение
@@ -77,10 +90,14 @@ namespace Timetracking_HSE_Bot
                 //Регистрация пользователя в БД
                 try
                 {
-                    DB.Registration(chatId, message.Chat.Username);
+                    if (user == null)
+                    {
+                        user = await userService.AddUser(chatId, message.Chat.Username);
+                        await activityService.AddDefaultActivities(user.Id);
+                    }
 
                     //Инициализация инлайн клавиатуры
-                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(DB.GetActivityList(chatId));
+                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(await activityService.GetActivities(user.Id));
 
                     //Вывод клавиатуры с сообщением
                     Message messageAct = await botClient.SendTextMessageAsync(
@@ -105,15 +122,24 @@ namespace Timetracking_HSE_Bot
                 }
             }
 
+            else if (message.Text != null && message.Text == "/help")
+            {
+                await botClient.SendTextMessageAsync(chatId,
+                text: "Чтобы запустить бота нажмите на команду /start\n" +
+                "Хотите узнать больше? В нашей <a href=\"https://telegra.ph/Lovec-vremeni--Spravka-05-26\">справке</a> есть вся информация о функциях бота!",
+                parseMode: ParseMode.Html,
+                replyMarkup: InlineKeyboard.Help());
+            }
+
             else if (message.Text != null && message.Text == "/archive")
             {
-                if (!DB.HaveUser(chatId))
+                if (user == null)
                 {
                     await botClient.SendTextMessageAsync(chatId,
                         "🤔 Вы не зарегестрированы. Нажмите на команду /start");
                     return;
                 }
-                List<Activity> archive = DB.GetActivityList(chatId, getOnlyArchived: true);
+                List<Models.Activity> archive = await activityService.GetActivities(user.Id, activeOnly: false);
 
                 if (archive.Count == 0)
                 {
@@ -126,7 +152,7 @@ namespace Timetracking_HSE_Bot
                 else
                 {
                     //Инициализация инлайн клавиатуры
-                    InlineKeyboardMarkup archivedActivityKeyboard = InlineKeyboard.Archive(DB.GetActivityList(chatId, getOnlyArchived: true));
+                    InlineKeyboardMarkup archivedActivityKeyboard = InlineKeyboard.Archive(archive);
 
                     //Вывод клавиатуры с сообщением
                     await botClient.SendTextMessageAsync(chatId,
@@ -137,18 +163,9 @@ namespace Timetracking_HSE_Bot
                 }
             }
 
-            else if (message.Text != null && message.Text == "/help")
-            {
-                await botClient.SendTextMessageAsync(chatId,
-                text: "Чтобы запустить бота нажмите на команду /start\n" +
-                "Хотите узнать больше? В нашей <a href=\"https://telegra.ph/Lovec-vremeni--Spravka-05-26\">справке</a> есть вся информация о функциях бота!",
-                parseMode: ParseMode.Html,
-                replyMarkup: InlineKeyboard.Help());
-            }
-
             else if (message.Text != null && message.Text == "/menu")
             {
-                if (!DB.HaveUser(chatId))
+                if (user == null)
                 {
                     await botClient.SendTextMessageAsync(chatId,
                         "🤔 Вы не зарегестрированы. Нажмите на команду /start");
@@ -157,7 +174,7 @@ namespace Timetracking_HSE_Bot
                 try
                 {
                     //Инициализация инлайн клавиатуры
-                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(DB.GetActivityList(chatId));
+                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(await activityService.GetActivities(user.Id));
 
                     //Вывод клавиатуры с сообщением
                     Message messageAct = await botClient.SendTextMessageAsync(
@@ -214,7 +231,7 @@ namespace Timetracking_HSE_Bot
 
                         // Сбросить состояние пользователя
                         User.ResetState(chatId);
-                        InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(DB.GetActivityList(chatId));
+                        InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(await activityService.GetActivities(user.Id));
 
                         // Отправляем сообщение
                         Message messageAct = await botClient.SendTextMessageAsync(
@@ -280,7 +297,7 @@ namespace Timetracking_HSE_Bot
                     // Сбросить состояние пользователя
                     User.ResetState(chatId);
 
-                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(DB.GetActivityList(chatId));
+                    InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(await activityService.GetActivities(user.Id));
 
                     Message messageAct = await botClient.SendTextMessageAsync(
                       chatId: chatId,
@@ -364,7 +381,8 @@ namespace Timetracking_HSE_Bot
         {
             int messageId = callbackQuery.Message.MessageId;
             long chatId = callbackQuery.Message.Chat.Id;
-            List<Activity> activityList = DB.GetActivityList(chatId);
+            var user = await userService.GetUserByChatId(chatId);
+            List<Models.Activity> activityList = await activityService.GetActivities(user.Id);
 
             switch (Regex.Replace(callbackQuery.Data, @"\d", ""))
             {
@@ -494,8 +512,8 @@ namespace Timetracking_HSE_Bot
 
                 case "aboutAct":
                     {
-                        int actNumber = int.Parse(Regex.Replace(callbackQuery.Data, @"\D", ""));
-                        Activity? activity = activityList.FirstOrDefault(a => a.Number == actNumber);
+                        int actId = int.Parse(Regex.Replace(callbackQuery.Data, @"\D", ""));
+                        Models.Activity? activity = activityList.FirstOrDefault(a => a.Id == actId);
 
                         if (activity != null)
                         {
@@ -508,7 +526,7 @@ namespace Timetracking_HSE_Bot
                                 text: $"{activity.Name}{status}\n\n" +
                                 $"Вы можете изменить название активности, отправить в архив или удалить её",
                                 parseMode: ParseMode.Markdown,
-                                replyMarkup: InlineKeyboard.ChangeActivity(actNumber));
+                                replyMarkup: InlineKeyboard.ChangeActivity(actId));
                         }
                         else
                         {
@@ -524,8 +542,8 @@ namespace Timetracking_HSE_Bot
                     }
                 case "archive":
                     {
-                        int actNumber = int.Parse(Regex.Replace(callbackQuery.Data, @"\D", ""));
-                        Activity? activity = activityList.FirstOrDefault(a => a.Number == actNumber);
+                        int actId = int.Parse(Regex.Replace(callbackQuery.Data, @"\D", ""));
+                        Models.Activity? activity = activityList.FirstOrDefault(a => a.Id == actId);
 
                         if (activity == null)
                         {
@@ -544,7 +562,7 @@ namespace Timetracking_HSE_Bot
                         try
                         {
                             if (activity.IsTracking)   //Остановка таймера активности
-                                Activity.Stop(chatId, actNumber);
+                                Activity.Stop(chatId, actId);
 
                             //Отправление активности в архив
                             DB.ArchiveActivity(chatId, actNumber);
@@ -553,7 +571,7 @@ namespace Timetracking_HSE_Bot
                             text: $"🗂 {activity.Name}: отправлено в архив\nПоказать архив — /archive");
 
                             //Отправка списка активностей
-                            InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(DB.GetActivityList(chatId));
+                            InlineKeyboardMarkup activityKeyboard = InlineKeyboard.Main(await activityService.GetActivities(user.Id));
                             Message message = await botClient.SendTextMessageAsync(chatId,
                                 text: "⏱ Вот все Ваши активности. Нажмите на ту, которую хотите изменить или узнать подробности.",
                                 replyMarkup: activityKeyboard);

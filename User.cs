@@ -1,4 +1,4 @@
-﻿namespace Timetracking_HSE_Bot
+﻿namespace TimeTracker
 {
     public class User
     {

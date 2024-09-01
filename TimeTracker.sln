@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Timetracking HSE Bot", "Timetracking HSE Bot.csproj", "{45D93055-7BB1-429B-BB47-6C89D7D90788}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Timetracking HSE Bot", "TimeTracker.csproj", "{45D93055-7BB1-429B-BB47-6C89D7D90788}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

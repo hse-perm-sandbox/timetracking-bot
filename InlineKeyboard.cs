@@ -1,32 +1,28 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 
-namespace Timetracking_HSE_Bot
+namespace TimeTracker
 {
     public class InlineKeyboard
     {
         //Главная клавиатура со списком активностей
-        public static InlineKeyboardMarkup Main(List<Activity> activityList)
+        public static InlineKeyboardMarkup Main(List<Models.Activity> activityList)
         {
             List<InlineKeyboardButton[]> rows = new()
             {
                 new[] {InlineKeyboardButton.WithCallbackData("Добавить активность", "add_activity")}
             };
 
-            foreach (Activity activity in activityList)
+            foreach (Models.Activity activity in activityList)
             {
                 InlineKeyboardButton activityButton = new("");
                 InlineKeyboardButton statusButton = new("");
-
-                if (!activity.InArchive)
-                {
-                    // Создаем кнопки для активности
-                    activityButton = activity.IsTracking
-                        ? InlineKeyboardButton.WithCallbackData($"⏱️ {activity.Name}", $"aboutAct{activity.Number}")
-                        : InlineKeyboardButton.WithCallbackData($"{activity.Name}", $"aboutAct{activity.Number}");
-                    statusButton = activity.IsTracking
-                        ? InlineKeyboardButton.WithCallbackData("⏹ СТОП", $"stop_{activity.Number}")
-                        : InlineKeyboardButton.WithCallbackData("❇️ СТАРТ", $"start_{activity.Number}");
-                }
+                
+                activityButton = activity.IsTracking
+                    ? InlineKeyboardButton.WithCallbackData($"⏱️ {activity.Name}", $"aboutAct{activity.Id}")
+                    : InlineKeyboardButton.WithCallbackData($"{activity.Name}", $"aboutAct{activity.Id}");
+                statusButton = activity.IsTracking
+                    ? InlineKeyboardButton.WithCallbackData("⏹ СТОП", $"stop_{activity.Id}")
+                    : InlineKeyboardButton.WithCallbackData("❇️ СТАРТ", $"start_{activity.Id}");
 
                 rows.Add(new[] { activityButton, statusButton });
             }
@@ -103,18 +99,18 @@ namespace Timetracking_HSE_Bot
         }
 
         //Клавиатура в AboutAct
-        public static InlineKeyboardMarkup ChangeActivity(int actNumber)
+        public static InlineKeyboardMarkup ChangeActivity(int actId)
         {
             InlineKeyboardMarkup changeActKeyboard = new(
             new List<InlineKeyboardButton[]>()
             {
                 new InlineKeyboardButton[]
                 {
-                    InlineKeyboardButton.WithCallbackData("✏️ Изменить", $"rename{actNumber}"), InlineKeyboardButton.WithCallbackData("🗑 Удалить", $"delete{actNumber}"),
+                    InlineKeyboardButton.WithCallbackData("✏️ Изменить", $"rename{actId}"), InlineKeyboardButton.WithCallbackData("🗑 Удалить", $"delete{actId}"),
                 },
                 new InlineKeyboardButton[]
                 {
-                    InlineKeyboardButton.WithCallbackData("🗂 Отправить в архив", $"archive{actNumber}"),
+                    InlineKeyboardButton.WithCallbackData("🗂 Отправить в архив", $"archive{actId}"),
                 },
             });
 
@@ -142,13 +138,13 @@ namespace Timetracking_HSE_Bot
         }
 
         //Клавиатура с архивированными активностями
-        public static InlineKeyboardMarkup Archive(List<Activity> archivedActivity)
+        public static InlineKeyboardMarkup Archive(List<Models.Activity> archivedActivity)
         {
             List<InlineKeyboardButton[]> rows = new();
 
-            foreach (Activity activity in archivedActivity)
+            foreach (Models.Activity activity in archivedActivity)
             {
-                rows.Add(new[] { InlineKeyboardButton.WithCallbackData($"{activity.Name}", $"aboutArchive{activity.Number}") });
+                rows.Add(new[] { InlineKeyboardButton.WithCallbackData($"{activity.Name}", $"aboutArchive{activity.Id}") });
             }
 
             return new InlineKeyboardMarkup(rows);
