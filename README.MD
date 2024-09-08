@@ -7,7 +7,7 @@
 
 Запуск dev-версии в docker-контейнере на сервере
 ```commandline
-docker pull ghcr.io/hse-perm-projects-23-24/timetracking-bot:dev;
+docker pull ghcr.io/hse-perm-sandbox/timetracking-bot:dev;
 docker volume create timetracking-data-dev;
-docker run -v timetracking-data-dev:/app/data/ -e TIMETRACKING_TG_TOKEN=set_token_value --name timetracking-bot-dev ghcr.io/hse-perm-projects-23-24/timetracking-bot:dev;
+docker run -v timetracking-data-dev:/app/data/ -e TIMETRACKING_TG_TOKEN=set_token_value --name timetracking-bot-dev ghcr.io/hse-perm-sandbox/timetracking-bot:dev;
 ```
